@@ -4,6 +4,8 @@ import { GLTFLoader, OrbitControls } from 'three/examples/jsm/Addons.js';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#fdeeda");
 
+const isMobile = window.innerWidth < 768;
+
 
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -40,7 +42,7 @@ skyColorTexture.colorSpace = THREE.SRGBColorSpace;
 const sphereGeometry = new THREE.SphereGeometry(32, 32, 32);
 const sphereMaterial = new THREE.MeshStandardMaterial({
   color: '#feebd4',
-  normalMap: skyNormalTexture,
+  normalMap: isMobile ? null : skyNormalTexture,
   roughnessMap: skyRoughnessTexture,
   roughness: 0.7,
   metalness: 0,
@@ -54,7 +56,8 @@ scene.add(sphereMesh);
 const heartsGroup = new THREE.Group();
 scene.add(heartsGroup);
 
-const pointCount = 2400;
+const pointCount = isMobile ? 900 : 2400;
+
 const pointCountPerGroup = pointCount / textures.length;
 
 
@@ -70,7 +73,7 @@ pointGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
 
 
 const pointsMaterial = new THREE.PointsMaterial({ 
-  size: 0.8, 
+  size: 0.8,
   sizeAttenuation: true,
   map: textures[i],
   transparent: true,
@@ -176,6 +179,10 @@ const renderer = new THREE.WebGLRenderer({
 
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setPixelRatio(
+  isMobile ? 1 : Math.min(window.devicePixelRatio, 2)
+);
+
 
 scene.environment = new THREE.PMREMGenerator(renderer)
   .fromScene(new THREE.Scene())
@@ -183,6 +190,8 @@ scene.environment = new THREE.PMREMGenerator(renderer)
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.minDistance = -2;
+controls.maxDistance = 40;
 
 
 window.addEventListener('resize', () => {
@@ -199,8 +208,11 @@ const clock = new THREE.Clock();
 function animate(){
   requestAnimationFrame(animate);
   controls.update();
-  heartsGroup.scale.y += Math.sin(clock.getElapsedTime()) * 0.002;
-  heartsGroup.scale.x += Math.sin(clock.getElapsedTime()) * 0.002;
+
+  const elapsedTime = clock.getElapsedTime();
+  const scaleSize = 1 + Math.sin(elapsedTime) * 0.05;
+
+  heartsGroup.scale.setScalar(scaleSize);
   cloudModels.position.y += Math.cos(clock.getElapsedTime()) * 0.004;
 
   renderer.render(scene, camera);
